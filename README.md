@@ -21,3 +21,7 @@ Every result is a review prompt, not a style violation. Repetition can be delibe
 Requires Python 3.10 or newer. Development checks use Ruff, pytest with branch coverage, and package builds.
 
 Part of the [Logan Pendragon Forge open-source collection](https://www.loganpendragonforge.com/open-source/). Licensed under the [MIT License](LICENSE).
+
+## 1.1.0 - 2026-10-16
+
+Use `phrase-echo manuscript.txt --allowlist intentional.json` with a local JSON array such as `["silver rain crossed the window"]`. Allowlisted phrases use exactly the detector's tokenization: ASCII letters/digits with an optional straight or curly apostrophe segment, case folding and curly-to-straight apostrophe normalization; punctuation and whitespace delimit tokens. Only an exact normalized token sequence is suppressed. A shorter phrase does not suppress a longer one, and a longer or different phrase does not suppress a shorter match. Suppression happens before longest-match selection and report limiting, so remaining results can fill the limit. The default and an empty list preserve the original output. Non-array files, non-string elements and entries with no recognized tokens produce errors. Source manuscripts are read only. This token rule is not broad multilingual language support.
