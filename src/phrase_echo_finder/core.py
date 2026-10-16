@@ -16,6 +16,8 @@ def analyze(
     min_characters: int = 14,
     max_gap_words: int = 250,
     limit: int = 100,
+    *,
+    allowlist: list[str] | None = None,
 ) -> dict[str, Any]:
     if (
         min_words < 2
@@ -25,6 +27,19 @@ def analyze(
         or limit < 1
     ):
         raise ValueError("analysis thresholds are invalid")
+    allowed: set[tuple[str, ...]] = set()
+    if allowlist is not None:
+        if not isinstance(allowlist, list):
+            raise ValueError("allowlist must be a JSON array of non-empty phrase strings")
+        for phrase in allowlist:
+            if not isinstance(phrase, str):
+                raise TypeError("allowlist phrases must be strings")
+            tokens = tuple(
+                match.group(0).casefold().replace("’", "'") for match in WORD.finditer(phrase)
+            )
+            if not tokens:
+                raise ValueError("allowlist phrases must contain recognized tokens")
+            allowed.add(tokens)
     matches = list(WORD.finditer(text))
     words = [match.group(0).casefold().replace("’", "'") for match in matches]
     line_starts = [0]
@@ -48,6 +63,8 @@ def analyze(
             if len(" ".join(phrase)) >= min_characters:
                 groups[phrase].append(start)
         for phrase, starts in groups.items():
+            if phrase in allowed:
+                continue
             if len(starts) < 2:
                 continue
             gaps = [right - left for left, right in pairwise(starts)]

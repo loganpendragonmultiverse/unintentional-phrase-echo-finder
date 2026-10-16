@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -14,6 +15,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-words", type=int, default=7)
     parser.add_argument("--min-characters", type=int, default=14)
     parser.add_argument("--max-gap-words", type=int, default=250)
+    parser.add_argument("--allowlist", type=Path, help="Local JSON array of intentional phrases")
     parser.add_argument("--limit", type=int, default=100)
     parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
     parser.add_argument("--output", type=Path)
@@ -27,6 +29,9 @@ def main(argv: list[str] | None = None) -> int:
             args.min_characters,
             args.max_gap_words,
             args.limit,
+            allowlist=json.loads(args.allowlist.read_text(encoding="utf-8"))
+            if args.allowlist
+            else None,
         )
         rendered = render_json(report) if args.format == "json" else render_markdown(report)
         if args.output:
@@ -35,7 +40,7 @@ def main(argv: list[str] | None = None) -> int:
             args.output.write_text(rendered, encoding="utf-8")
         else:
             sys.stdout.write(rendered)
-    except (OSError, UnicodeError, ValueError) as exc:
+    except (OSError, UnicodeError, TypeError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     return 0
