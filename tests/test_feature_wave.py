@@ -65,3 +65,18 @@ def test_apostrophe_normalization():
         allowlist=["TRAVELER'S SILVER BELL RANG"],
     )
     assert result["echo_count"] == 0
+
+
+def test_cli_rejects_null_allowlist_without_output(tmp_path, capsys):
+    source = tmp_path / "story.txt"
+    source.write_text(TEXT, encoding="utf-8")
+    allowlist = tmp_path / "allow.json"
+    allowlist.write_text("null", encoding="utf-8")
+    output = tmp_path / "report.json"
+    assert main([str(source), "--allowlist", str(allowlist), "--output", str(output)]) == 2
+    captured = capsys.readouterr()
+    assert "allowlist must be a JSON array" in captured.err
+    assert not captured.out
+    assert not output.exists()
+    assert source.read_text(encoding="utf-8") == TEXT
+    assert allowlist.read_text(encoding="utf-8") == "null"

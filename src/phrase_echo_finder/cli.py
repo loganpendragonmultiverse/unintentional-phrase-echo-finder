@@ -22,6 +22,11 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         text = args.input.read_text(encoding="utf-8")
+        allowlist = None
+        if args.allowlist is not None:
+            allowlist = json.loads(args.allowlist.read_text(encoding="utf-8"))
+            if not isinstance(allowlist, list):
+                raise ValueError("allowlist must be a JSON array of non-empty phrase strings")
         report = analyze(
             text,
             args.min_words,
@@ -29,9 +34,7 @@ def main(argv: list[str] | None = None) -> int:
             args.min_characters,
             args.max_gap_words,
             args.limit,
-            allowlist=json.loads(args.allowlist.read_text(encoding="utf-8"))
-            if args.allowlist
-            else None,
+            allowlist=allowlist,
         )
         rendered = render_json(report) if args.format == "json" else render_markdown(report)
         if args.output:
