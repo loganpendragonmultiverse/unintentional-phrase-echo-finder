@@ -277,3 +277,15 @@ def test_real_closed_pipe_exits_two_without_shutdown_error(tmp_path):
     assert result.returncode == 2
     assert "error:" in result.stderr and "Exception ignored" not in result.stderr
     assert source.read_text() == TEXT
+
+
+def test_self_loop_symlink_destination_is_preserved(tmp_path):
+    source = tmp_path / "story.txt"
+    source.write_text(TEXT)
+    loop = tmp_path / "report"
+    try:
+        loop.symlink_to(loop)
+    except OSError:
+        pytest.skip("This host does not permit creating test symlinks")
+    assert cli.main([str(source), "--output", str(loop)]) == 2
+    assert loop.is_symlink() and source.read_text() == TEXT

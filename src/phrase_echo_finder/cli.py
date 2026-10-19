@@ -58,6 +58,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         rendered = render_json(report) if args.format == "json" else render_markdown(report)
         if args.output:
+            if os.path.lexists(args.output):
+                raise ValueError(f"output already exists: {args.output}; choose a new file")
             try:
                 with args.output.open("x", encoding="utf-8", newline="") as stream:
                     stream.write(rendered)
