@@ -19,6 +19,11 @@ def analyze(
     *,
     allowlist: list[str] | None = None,
 ) -> dict[str, Any]:
+    if any(
+        type(value) is not int
+        for value in (min_words, max_words, min_characters, max_gap_words, limit)
+    ):
+        raise ValueError("analysis thresholds must be integers")
     if (
         min_words < 2
         or max_words < min_words
@@ -31,11 +36,12 @@ def analyze(
     if allowlist is not None:
         if not isinstance(allowlist, list):
             raise ValueError("allowlist must be a JSON array of non-empty phrase strings")
-        for phrase in allowlist:
-            if not isinstance(phrase, str):
+        for allowed_phrase in allowlist:
+            if not isinstance(allowed_phrase, str):
                 raise TypeError("allowlist phrases must be strings")
             tokens = tuple(
-                match.group(0).casefold().replace("’", "'") for match in WORD.finditer(phrase)
+                match.group(0).casefold().replace("’", "'")
+                for match in WORD.finditer(allowed_phrase)
             )
             if not tokens:
                 raise ValueError("allowlist phrases must contain recognized tokens")
@@ -56,7 +62,7 @@ def analyze(
         return {"word": match_index + 1, "line": line, "column": column}
 
     candidates: list[dict[str, Any]] = []
-    for size in range(max_words, min_words - 1, -1):
+    for size in range(min(max_words, len(words)), min_words - 1, -1):
         groups: dict[tuple[str, ...], list[int]] = defaultdict(list)
         for start in range(len(words) - size + 1):
             phrase = tuple(words[start : start + size])
