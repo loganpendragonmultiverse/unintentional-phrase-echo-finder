@@ -13,10 +13,14 @@ jobs:
         with: { python-version: "3.12" }
       - run: python -m pip install build
       - run: python -m build
+      - name: Checksum release distributions
+        working-directory: dist
+        run: sha256sum *.whl *.tar.gz > SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
           name: release-artifacts
           path: |
             dist/*.whl
             dist/*.tar.gz
+            dist/SHA256SUMS.txt
 

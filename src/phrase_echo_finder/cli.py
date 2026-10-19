@@ -1,11 +1,31 @@
 from __future__ import annotations
 
 import argparse
+import io
 import json
+import os
 import sys
 from pathlib import Path
 
 from .core import analyze, render_json, render_markdown
+
+
+def _write_stdout(rendered: str) -> None:
+    """Avoid retaining report bytes in a buffer after a closed-pipe failure."""
+    try:
+        descriptor = sys.stdout.fileno()
+    except (AttributeError, io.UnsupportedOperation):
+        sys.stdout.write(rendered)
+        sys.stdout.flush()
+        return
+    pending = memoryview(
+        rendered.encode(sys.stdout.encoding or "utf-8", sys.stdout.errors or "strict")
+    )
+    while pending:
+        count = os.write(descriptor, pending)
+        if count <= 0:
+            raise OSError("stdout accepted no report bytes")
+        pending = pending[count:]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -38,11 +58,15 @@ def main(argv: list[str] | None = None) -> int:
         )
         rendered = render_json(report) if args.format == "json" else render_markdown(report)
         if args.output:
-            if args.output.exists():
-                raise ValueError(f"output already exists: {args.output}")
-            args.output.write_text(rendered, encoding="utf-8")
+            try:
+                with args.output.open("x", encoding="utf-8", newline="") as stream:
+                    stream.write(rendered)
+            except FileExistsError as exc:
+                raise ValueError(
+                    f"output already exists: {args.output}; choose a new file"
+                ) from exc
         else:
-            sys.stdout.write(rendered)
+            _write_stdout(rendered)
     except (OSError, UnicodeError, TypeError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
